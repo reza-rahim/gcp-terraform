@@ -27,7 +27,7 @@ variable "gce_ssh_pub_key_file" {
 }
 
 variable "gce_public_subnet_cidr" {
-  default = "10.10.0.0/16"
+  default = "10.10.0.0/24"
 }
 
 variable "gce_private_subnet_cidr" {
@@ -35,7 +35,7 @@ variable "gce_private_subnet_cidr" {
 }
 
 variable "bastion-ip-address-count" {
-  default = 2
+  default = 1
 }
 
 variable "ubuntu" {
@@ -66,5 +66,18 @@ variable "worker_machine_count" {
 variable "worker_machine_type" {
   default = "n1-standard-4"
 }
+
+
+variable "rook_machine_count" {
+  default = 2
+}
+variable "rook_machine_type" {
+  default = "n1-standard-4"
+}
+
+variable "rook_disk_size" {
+  default = 100
+}
+
 
 

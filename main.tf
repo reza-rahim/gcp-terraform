@@ -107,7 +107,7 @@ resource "google_compute_instance" "bastion" {
 
   network_interface {
     subnetwork = "${google_compute_subnetwork.public-subnet.name}"
-    network_ip = "10.10.0.${count.index+2}"
+    #network_ip = "10.10.0.${count.index+2}"
 
     access_config {
       // Ephemeral IP
@@ -124,7 +124,7 @@ resource "google_compute_instance" "bastion" {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}" 
   }
 
-
+  
   network_interface {
     network = "default"
     access_config {
@@ -154,8 +154,8 @@ resource "google_compute_instance" "controller" {
   }
 
   network_interface {
-    subnetwork = "${google_compute_subnetwork.public-subnet.name}"
-    network_ip = "10.10.0.${count.index+4}"
+    subnetwork = "${google_compute_subnetwork.private-subnet.name}"
+    #network_ip = "10.10.0.${count.index+4}"
 
   }
 
@@ -193,7 +193,7 @@ resource "google_compute_instance" "worker" {
 
   network_interface {
     subnetwork = "${google_compute_subnetwork.private-subnet.name}"
-    network_ip = "10.20.0.${count.index+3}"
+    #network_ip = "10.20.0.${count.index+3}"
 
   }
 
@@ -204,6 +204,55 @@ resource "google_compute_instance" "worker" {
   metadata = {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
+
+  metadata_startup_script = "apt-get install -y python"
+}
+
+resource "google_compute_disk" "rook-disk-" {
+    count   = "${var.rook_machine_count}"
+    name    = "rook-disk-${count.index}-data"
+    type    = "pd-standard"
+    zone    = "${var.zone}"
+    size    = "${var.rook_disk_size}"
+}
+
+resource "google_compute_instance" "rook" {
+  count = "${var.rook_machine_count}"
+  name            = "rook-${count.index}"
+  machine_type    = "${var.rook_machine_type}"
+  #can_ip_forward  = true
+
+  tags = ["kubernetes-the-easy-way","rook"]
+
+  boot_disk {
+    initialize_params {
+      image = "${var.ubuntu}"
+      size  = "${var.boot_disk_size}"
+    }
+  }
+
+  // Local SSD disk
+  scratch_disk {
+  }
+
+  network_interface {
+    subnetwork = "${google_compute_subnetwork.private-subnet.name}"
+    #network_ip = "10.20.0.${count.index+3}"
+
+  }
+
+  service_account {
+    scopes = ["compute-rw","storage-ro","service-management","service-control","logging-write","monitoring"]
+  }
+
+  metadata = {
+    sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
+  }
+
+  attached_disk {
+        source      = "${element(google_compute_disk.rook-disk-.*.self_link, count.index)}"
+        device_name = "${element(google_compute_disk.rook-disk-.*.name, count.index)}"
+   }
 
   metadata_startup_script = "apt-get install -y python"
 }
