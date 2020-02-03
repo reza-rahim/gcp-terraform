@@ -38,3 +38,33 @@ variable "bastion-ip-address-count" {
   default = 2
 }
 
+variable "ubuntu" {
+  default = "ubuntu-os-cloud/ubuntu-1804-lts"
+}
+
+
+variable "boot_disk_size" {
+  default = 50
+}
+
+variable "bastion_machine_type" {
+  default = "n1-standard-1"
+}
+
+variable "controller_machine_count" {
+  default = 2
+}
+variable "controller_machine_type" {
+  default = "n1-standard-4"
+}
+
+
+variable "worker_machine_count" {
+  default = 2
+}
+
+variable "worker_machine_type" {
+  default = "n1-standard-4"
+}
+
+

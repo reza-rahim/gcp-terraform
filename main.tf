@@ -89,14 +89,15 @@ resource "google_compute_address" "bastion-ip-address" {
 resource "google_compute_instance" "bastion" {
   count = "${var.bastion-ip-address-count}"
   name            = "bastion-${count.index}"
-  machine_type    = "n1-standard-1"
-  can_ip_forward  = true
+  machine_type    = "${var.bastion_machine_type}"
+  #can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way","bastion"]
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-1804-lts"
+      image = "${var.ubuntu}"
+      size  = "${var.boot_disk_size}"
     }
   }
 
@@ -134,16 +135,17 @@ resource "google_compute_instance" "bastion" {
 }
 
 resource "google_compute_instance" "controller" {
-  count = 1
+  count = "${var.controller_machine_count}"
   name            = "controller-${count.index}"
-  machine_type    = "n1-standard-1"
-  can_ip_forward  = true
+  machine_type    = "${var.controller_machine_type}"
+  #can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way","controller"]
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-1804-lts"
+      image = "${var.ubuntu}"
+      size  = "${var.boot_disk_size}"
     }
   }
 
@@ -171,16 +173,17 @@ resource "google_compute_instance" "controller" {
 
 
 resource "google_compute_instance" "worker" {
-  count = 1
+  count = "${var.worker_machine_count}"
   name            = "worker-${count.index}"
-  machine_type    = "n1-standard-1"
-  can_ip_forward  = true
+  machine_type    = "${var.worker_machine_type}"
+  #can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way","worker"]
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-1804-lts"
+      image = "${var.ubuntu}"
+      size  = "${var.boot_disk_size}"
     }
   }
 
