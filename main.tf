@@ -1,12 +1,12 @@
 provider "google" {
-  credentials = "${file("../../gcpservice/terraform_account.json")}"
+  credentials = "${file("${var.credentials}")}"
   project     = "${var.var_project}"
   region      = "${var.region}"
   zone        = "${var.zone}"
 }
 
 resource "google_compute_network" "vpc" {
-  name          =  "kube"
+  name          =  "${var.vpc}"
   auto_create_subnetworks = "false"
   routing_mode            = "GLOBAL"
 }
@@ -37,7 +37,7 @@ resource "google_compute_router" "router" {
 resource "google_compute_router_nat" "simple-nat" {
   name                               = "nat-1"
   router                             = "${google_compute_router.router.name}"
-  region                             = "us-central1"
+  region                             = "${var.region}"
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
@@ -81,8 +81,13 @@ resource "google_compute_firewall" "public-firewall" {
   source_ranges = [ "0.0.0.0/0" ]
 }
 
+resource "google_compute_address" "bastion-ip-address" {
+  count = "${var.bastion-ip-address-count}"
+  name = "bastion-ip-address-${count.index}"
+}
+
 resource "google_compute_instance" "bastion" {
-  count = 1
+  count = "${var.bastion-ip-address-count}"
   name            = "bastion-${count.index}"
   machine_type    = "n1-standard-1"
   can_ip_forward  = true
@@ -115,14 +120,22 @@ resource "google_compute_instance" "bastion" {
   metadata_startup_script = "apt-get install -y python"
 
   metadata = {
-    sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
+    sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}" 
+  }
+
+
+  network_interface {
+    network = "default"
+    access_config {
+      nat_ip = "${google_compute_address.bastion-ip-address[count.index].address}"
+    }
   }
 
 }
 
-resource "google_compute_instance" "controller1" {
+resource "google_compute_instance" "controller" {
   count = 1
-  name            = "controlleri1-${count.index}"
+  name            = "controller-${count.index}"
   machine_type    = "n1-standard-1"
   can_ip_forward  = true
 
@@ -157,13 +170,13 @@ resource "google_compute_instance" "controller1" {
 
 
 
-resource "google_compute_instance" "controller" {
+resource "google_compute_instance" "worker" {
   count = 1
-  name            = "controller-${count.index}"
+  name            = "worker-${count.index}"
   machine_type    = "n1-standard-1"
   can_ip_forward  = true
 
-  tags = ["kubernetes-the-easy-way","controller"]
+  tags = ["kubernetes-the-easy-way","worker"]
 
   boot_disk {
     initialize_params {
