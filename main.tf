@@ -208,21 +208,29 @@ resource "google_compute_instance" "worker" {
   metadata_startup_script = "apt-get install -y python"
 }
 
-resource "google_compute_disk" "rook-disk-" {
-    count   = "${var.rook_machine_count}"
-    name    = "rook-disk-${count.index}-data"
-    type    = "pd-standard"
+resource "google_compute_disk" "storage-disk-b-" {
+    count   = "${var.storage_machine_count}"
+    name    = "storage-disk-b-${count.index}-data"
+    type    = "${var.storage_disk_type}"
     zone    = "${var.zone}"
-    size    = "${var.rook_disk_size}"
+    size    = "${var.storage_disk_size}"
 }
 
-resource "google_compute_instance" "rook" {
-  count = "${var.rook_machine_count}"
-  name            = "rook-${count.index}"
-  machine_type    = "${var.rook_machine_type}"
+resource "google_compute_disk" "storage-disk-c-" {
+    count   = "${var.storage_machine_count}"
+    name    = "storage-disk-c-${count.index}-data"
+    type    = "${var.storage_disk_type}"
+    zone    = "${var.zone}"
+    size    = "${var.storage_disk_size}"
+}
+
+resource "google_compute_instance" "storage" {
+  count = "${var.storage_machine_count}"
+  name            = "storage-${count.index}"
+  machine_type    = "${var.storage_machine_type}"
   #can_ip_forward  = true
 
-  tags = ["kubernetes-the-easy-way","rook"]
+  tags = ["kubernetes-the-easy-way","storage"]
 
   boot_disk {
     initialize_params {
@@ -250,8 +258,13 @@ resource "google_compute_instance" "rook" {
   }
 
   attached_disk {
-        source      = "${element(google_compute_disk.rook-disk-.*.self_link, count.index)}"
-        device_name = "${element(google_compute_disk.rook-disk-.*.name, count.index)}"
+        source      = "${element(google_compute_disk.storage-disk-b-.*.self_link, count.index)}"
+        device_name = "${element(google_compute_disk.storage-disk-b-.*.name, count.index)}"
+   }
+
+  attached_disk {
+        source      = "${element(google_compute_disk.storage-disk-c-.*.self_link, count.index)}"
+        device_name = "${element(google_compute_disk.storage-disk-c-.*.name, count.index)}"
    }
 
   metadata_startup_script = "apt-get install -y python"

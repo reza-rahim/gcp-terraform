@@ -68,15 +68,19 @@ variable "worker_machine_type" {
 }
 
 
-variable "rook_machine_count" {
+variable "storage_machine_count" {
   default = 2
 }
-variable "rook_machine_type" {
+variable "storage_machine_type" {
   default = "n1-standard-4"
 }
 
-variable "rook_disk_size" {
+variable "storage_disk_size" {
   default = 100
+}
+
+variable "storage_disk_type" {
+  default = "pd-standard"
 }
 
 
