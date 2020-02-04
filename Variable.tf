@@ -50,35 +50,35 @@ variable "bastion_machine_type" {
   default = "n1-standard-1"
 }
 
-variable "controller_machine_count" {
+variable "kube_master_machine_count" {
   default = 2
 }
 
-variable "controller_machine_type" {
+variable "kube_master_machine_type" {
   default = "n1-standard-4"
 }
 
-variable "worker_machine_count" {
+variable "kube_worker_machine_count" {
   default = 2
 }
 
-variable "worker_machine_type" {
+variable "kube_worker_machine_type" {
   default = "n1-standard-4"
 }
 
-variable "storage_machine_count" {
+variable "kube_storage_machine_count" {
   default = 2
 }
 
-variable "storage_machine_type" {
+variable "kube_storage_machine_type" {
   default = "n1-standard-4"
 }
 
-variable "storage_disk_size" {
+variable "kube_storage_disk_size" {
   default = 100
 }
 
-variable "storage_disk_type" {
+variable "kube_storage_disk_type" {
   default = "pd-standard"
 }
 

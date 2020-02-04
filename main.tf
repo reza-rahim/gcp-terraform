@@ -9,6 +9,7 @@ resource "google_compute_network" "vpc" {
   name                    = var.vpc
   auto_create_subnetworks = "false"
   routing_mode            = "GLOBAL"
+
 }
 
 resource "google_compute_subnetwork" "public-subnet" {
@@ -99,9 +100,6 @@ resource "google_compute_instance" "bastion" {
     }
   }
 
-  // Local SSD disk
-  scratch_disk {
-  }
 
   network_interface {
     subnetwork = google_compute_subnetwork.public-subnet.name
@@ -131,14 +129,14 @@ resource "google_compute_instance" "bastion" {
   }
 }
 
-resource "google_compute_instance" "controller" {
-  count        = var.controller_machine_count
-  name         = "controller-${count.index}"
-  machine_type = var.controller_machine_type
+resource "google_compute_instance" "kube-master" {
+  count        = var.kube_master_machine_count
+  name         = "kube-master-${count.index}"
+  machine_type = var.kube_master_machine_type
 
   #can_ip_forward  = true
 
-  tags = ["kubernetes-the-easy-way", "controller"]
+  tags = ["kubernetes-the-easy-way", "kube-master"]
 
   boot_disk {
     initialize_params {
@@ -147,9 +145,6 @@ resource "google_compute_instance" "controller" {
     }
   }
 
-  // Local SSD disk
-  scratch_disk {
-  }
 
   network_interface {
     subnetwork = google_compute_subnetwork.private-subnet.name
@@ -167,14 +162,14 @@ resource "google_compute_instance" "controller" {
   metadata_startup_script = "apt-get install -y python"
 }
 
-resource "google_compute_instance" "worker" {
-  count        = var.worker_machine_count
-  name         = "worker-${count.index}"
-  machine_type = var.worker_machine_type
+resource "google_compute_instance" "kube-worker" {
+  count        = var.kube_worker_machine_count
+  name         = "kube-worker-${count.index}"
+  machine_type = var.kube_worker_machine_type
 
   #can_ip_forward  = true
 
-  tags = ["kubernetes-the-easy-way", "worker"]
+  tags = ["kubernetes-the-easy-way", "kube-worker"]
 
   boot_disk {
     initialize_params {
@@ -183,9 +178,6 @@ resource "google_compute_instance" "worker" {
     }
   }
 
-  // Local SSD disk
-  scratch_disk {
-  }
 
   network_interface {
     subnetwork = google_compute_subnetwork.private-subnet.name
@@ -204,29 +196,29 @@ resource "google_compute_instance" "worker" {
 }
 
 resource "google_compute_disk" "storage-disk-b-" {
-  count = var.storage_machine_count
+  count = var.kube_storage_machine_count
   name  = "storage-disk-b-${count.index}-data"
-  type  = var.storage_disk_type
+  type  = var.kube_storage_disk_type
   zone  = var.zone
-  size  = var.storage_disk_size
+  size  = var.kube_storage_disk_size
 }
 
 resource "google_compute_disk" "storage-disk-c-" {
-  count = var.storage_machine_count
+  count = var.kube_storage_machine_count
   name  = "storage-disk-c-${count.index}-data"
-  type  = var.storage_disk_type
+  type  = var.kube_storage_disk_type
   zone  = var.zone
-  size  = var.storage_disk_size
+  size  = var.kube_storage_disk_size
 }
 
-resource "google_compute_instance" "storage" {
-  count        = var.storage_machine_count
-  name         = "storage-${count.index}"
-  machine_type = var.storage_machine_type
+resource "google_compute_instance" "kube-storage" {
+  count        = var.kube_storage_machine_count
+  name         = "kube-storage-${count.index}"
+  machine_type = var.kube_storage_machine_type
 
   #can_ip_forward  = true
 
-  tags = ["kubernetes-the-easy-way", "storage"]
+  tags = ["kubernetes-the-easy-way", "kube-storage"]
 
   boot_disk {
     initialize_params {
@@ -235,9 +227,6 @@ resource "google_compute_instance" "storage" {
     }
   }
 
-  // Local SSD disk
-  scratch_disk {
-  }
 
   network_interface {
     subnetwork = google_compute_subnetwork.private-subnet.name
@@ -264,4 +253,19 @@ resource "google_compute_instance" "storage" {
 
   metadata_startup_script = "apt-get install -y python"
 }
+
+data  "template_file" "k8s" {
+    template = file("./templates/k8s.tpl")
+    vars = {
+        kube_master_name = join("\n", google_compute_instance.kube-master.*.name)
+        kube_worker_name = join("\n", google_compute_instance.kube-worker.*.name)
+        kube_storage_name = join("\n", google_compute_instance.kube-storage.*.name)
+    }
+}
+
+resource "local_file" "k8s_file" {
+  content  = data.template_file.k8s.rendered
+  filename = "./inventory/k8s-host.ini"
+}
+
 
