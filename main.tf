@@ -80,13 +80,15 @@ resource "google_compute_firewall" "public-firewall" {
 }
 
 resource "google_compute_address" "bastion-ip-address" {
-  count = var.bastion-ip-address-count
-  name  = "bastion-ip-address-${count.index}"
+  #count = var.bastion-ip-address-count
+  #name  = "bastion-ip-address-${count.index}"
+  name  = "bastion-ip-address"
 }
 
 resource "google_compute_instance" "bastion" {
-  count        = var.bastion-ip-address-count
-  name         = "bastion-${count.index}"
+  #count        = var.bastion-ip-address-count
+  #name         = "bastion-${count.index}"
+  name         = "bastion"
   machine_type = var.bastion_machine_type
 
   #can_ip_forward  = true
@@ -107,7 +109,7 @@ resource "google_compute_instance" "bastion" {
     #network_ip = "10.10.0.${count.index+2}"
 
     access_config {
-      // Ephemeral IP
+      nat_ip  = google_compute_address.bastion-ip-address.address
     }
   }
 
@@ -121,12 +123,8 @@ resource "google_compute_instance" "bastion" {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
 
-  network_interface {
-    network = "default"
-    access_config {
-       nat_ip  = element(google_compute_address.bastion-ip-address.*.address, count.index)
-    }
-  }
+
+  
 }
 
 resource "google_compute_instance" "kube-master" {
@@ -254,6 +252,7 @@ resource "google_compute_instance" "kube-storage" {
   metadata_startup_script = "apt-get install -y python"
 }
 
+## create ansible invertory file
 data  "template_file" "k8s" {
     template = file("./templates/k8s.tpl")
     vars = {
@@ -267,5 +266,19 @@ resource "local_file" "k8s_file" {
   content  = data.template_file.k8s.rendered
   filename = "./inventory/k8s-host.ini"
 }
+
+data  "template_file" "ssh" {
+    template = file("./templates/ssh.tpl")
+    vars = {
+        bastion_ip =  google_compute_address.bastion-ip-address.address
+        bastion_ip =  google_compute_address.bastion-ip-address.address
+    }
+}
+
+resource "local_file" "ssh_file" {
+  content  = data.template_file.ssh.rendered
+  filename = "./scripts/ssh.sh"
+}
+
 
 

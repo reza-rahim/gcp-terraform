@@ -14,6 +14,10 @@ variable "zone" {
   default = "us-central1-a"
 }
 
+variable "os" {
+  default = "ubuntu"
+}
+
 variable "vpc" {
   default = "kube"
 }
@@ -24,6 +28,10 @@ variable "gce_ssh_user" {
 
 variable "gce_ssh_pub_key_file" {
   default = "~/.ssh/id_rsa.pub"
+}
+
+variable "gce_ssh_private_key_file" {
+  default = "~/.ssh/id_rsa"
 }
 
 variable "gce_public_subnet_cidr" {
@@ -59,7 +67,7 @@ variable "kube_master_machine_type" {
 }
 
 variable "kube_worker_machine_count" {
-  default = 2
+  default = 3
 }
 
 variable "kube_worker_machine_type" {
@@ -67,7 +75,7 @@ variable "kube_worker_machine_type" {
 }
 
 variable "kube_storage_machine_count" {
-  default = 2
+  default = 3
 }
 
 variable "kube_storage_machine_type" {

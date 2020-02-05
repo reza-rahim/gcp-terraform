@@ -4,9 +4,7 @@ kube-master-1
 [kube-worker]
 kube-worker-0
 kube-worker-1
-kube-worker-2
 [kube-storage]
 kube-storage-0
 kube-storage-1
-kube-storage-2
 
