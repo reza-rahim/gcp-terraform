@@ -12,6 +12,9 @@ resource "google_compute_network" "vpc" {
 
 }
 
+
+################################   ##subnet and route ##########################
+
 resource "google_compute_subnetwork" "public-subnet" {
   name          = "public-subnet"
   network       = google_compute_network.vpc.name
@@ -33,6 +36,9 @@ resource "google_compute_router" "router" {
   }
 }
 
+
+################################ nat  ############################
+
 resource "google_compute_router_nat" "simple-nat" {
   name                               = "nat-1"
   router                             = google_compute_router.router.name
@@ -40,6 +46,10 @@ resource "google_compute_router_nat" "simple-nat" {
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
+
+
+################################ fire wall ############################
+
 
 resource "google_compute_firewall" "private-firewall" {
   name    = "private-firewall"
@@ -79,6 +89,11 @@ resource "google_compute_firewall" "public-firewall" {
   source_ranges = ["0.0.0.0/0"]
 }
 
+
+
+########################### bastion ############################ 
+
+
 resource "google_compute_address" "bastion-ip-address" {
   #count = var.bastion-ip-address-count
   #name  = "bastion-ip-address-${count.index}"
@@ -110,6 +125,7 @@ resource "google_compute_instance" "bastion" {
 
     access_config {
       nat_ip  = google_compute_address.bastion-ip-address.address
+      #nat_ip  = element(google_compute_address.bastion-ip-address.*.address, count.index)
     }
   }
 
@@ -126,6 +142,8 @@ resource "google_compute_instance" "bastion" {
 
   
 }
+
+########################### kube master ############################
 
 resource "google_compute_instance" "kube-master" {
   count        = var.kube_master_machine_count
@@ -160,6 +178,62 @@ resource "google_compute_instance" "kube-master" {
   metadata_startup_script = "apt-get install -y python"
 }
 
+
+##### ----- #####
+resource "google_compute_instance_group" "kube-master-inst-group" {
+  
+  name        = "kube-master-inst-group"
+  description = "kube master load balancer"
+
+  instances = [
+  
+    for kube-master in google_compute_instance.kube-master:
+       kube-master.self_link
+  ]
+
+  named_port {
+    name = "http"
+    port = "8080"
+  }
+
+  named_port {
+    name = "https"
+    port = "6443"
+  }
+
+  zone = var.zone
+}
+
+resource "google_compute_health_check" "tcp-health-check" {
+  name = "tcp-health-check"
+
+  tcp_health_check {
+    port = "6443"
+  }
+}
+
+resource "google_compute_region_backend_service" "kube-master-lb" {
+  name          = "kube-master-lb"
+  health_checks = [google_compute_health_check.tcp-health-check.self_link]
+  region        = var.region
+
+  backend {
+    group = google_compute_instance_group.kube-master-inst-group.self_link
+  }
+}
+
+resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
+  name                  = "kube-master-lb-forwarding-rule"
+  load_balancing_scheme = "INTERNAL"
+  ports                 = ["8080", "6443"]
+  network               = google_compute_network.vpc.self_link
+  subnetwork            = google_compute_subnetwork.private-subnet.self_link
+  backend_service       = google_compute_region_backend_service.kube-master-lb.self_link
+}
+
+
+###################### kube worker #################################
+
 resource "google_compute_instance" "kube-worker" {
   count        = var.kube_worker_machine_count
   name         = "kube-worker-${count.index}"
@@ -193,6 +267,7 @@ resource "google_compute_instance" "kube-worker" {
   metadata_startup_script = "apt-get install -y python"
 }
 
+###################### kube storage #################################
 resource "google_compute_disk" "storage-disk-b-" {
   count = var.kube_storage_machine_count
   name  = "storage-disk-b-${count.index}-data"
@@ -252,7 +327,7 @@ resource "google_compute_instance" "kube-storage" {
   metadata_startup_script = "apt-get install -y python"
 }
 
-## create ansible invertory file
+####################### create ansible invertory file  ####################### 
 data  "template_file" "k8s" {
     template = file("./templates/k8s.tpl")
     vars = {
@@ -266,6 +341,9 @@ resource "local_file" "k8s_file" {
   content  = data.template_file.k8s.rendered
   filename = "./inventory/k8s-host.ini"
 }
+
+
+####################### create ssh files  ####################### 
 
 data  "template_file" "ssh" {
     template = file("./templates/ssh.tpl")
