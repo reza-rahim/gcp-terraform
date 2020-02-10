@@ -12,7 +12,6 @@ resource "google_compute_network" "vpc" {
 
 }
 
-
 ################################   ##subnet and route ##########################
 
 resource "google_compute_subnetwork" "public-subnet" {
@@ -89,8 +88,6 @@ resource "google_compute_firewall" "public-firewall" {
   source_ranges = ["0.0.0.0/0"]
 }
 
-
-
 ########################### bastion ############################ 
 
 
@@ -133,14 +130,11 @@ resource "google_compute_instance" "bastion" {
     scopes = ["compute-rw", "storage-ro", "service-management", "service-control", "logging-write", "monitoring"]
   }
 
-  metadata_startup_script = "apt-get install -y python"
+  metadata_startup_script = "apt-get install -y python; add-apt-repository ppa:ansible/ansible-2.5 -y; apt-get update; apt update; apt install -y ansible ; git clone https://github.com/reza-rahim/kubeadm-ansible.git"
 
   metadata = {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
-
-
-  
 }
 
 ########################### kube master ############################
@@ -212,6 +206,8 @@ resource "google_compute_health_check" "tcp-health-check" {
   }
 }
 
+## load balancer kube-master-lb
+
 resource "google_compute_region_backend_service" "kube-master-lb" {
   name          = "kube-master-lb"
   health_checks = [google_compute_health_check.tcp-health-check.self_link]
@@ -229,6 +225,60 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
   network               = google_compute_network.vpc.self_link
   subnetwork            = google_compute_subnetwork.private-subnet.self_link
   backend_service       = google_compute_region_backend_service.kube-master-lb.self_link
+}
+
+
+###################### ingress ####################
+
+
+  resource "google_compute_instance" "kube-ingress" {
+  count        = var.kube_ingress_machine_count
+  name         = "kube-ingress-${count.index}"
+  machine_type = var.kube_ingress_machine_type
+
+
+  tags = ["kubernetes-the-easy-way", "kube-ingress"]
+
+  boot_disk {
+    initialize_params {
+      image = var.ubuntu
+      size  = var.boot_disk_size
+    }
+  }
+
+    network_interface {
+    subnetwork = google_compute_subnetwork.private-subnet.name
+    #network_ip = "10.20.0.${count.index+3}"
+  }
+
+  service_account {
+    scopes = ["compute-rw", "storage-ro", "service-management", "service-control", "logging-write", "monitoring"]
+  }
+
+  metadata = {
+    sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
+  }
+
+  metadata_startup_script = "apt-get install -y python"
+}
+
+resource "google_compute_instance_group" "kube-ingress-inst-group" {
+  
+  name        = "kube-ingress-inst-group"
+  description = "kube ingress load balancer"
+
+  instances = [
+  
+    for kube-ingress in google_compute_instance.kube-ingress:
+       kube-ingress.self_link
+  ]
+
+  named_port {
+    name = "https"
+    port = "32000"
+  }
+
+  zone = var.zone
 }
 
 
@@ -334,12 +384,13 @@ data  "template_file" "k8s" {
         kube_master_name = join("\n", google_compute_instance.kube-master.*.name)
         kube_worker_name = join("\n", google_compute_instance.kube-worker.*.name)
         kube_storage_name = join("\n", google_compute_instance.kube-storage.*.name)
+        kube_ingress_name = join("\n", google_compute_instance.kube-ingress.*.name)
     }
 }
 
 resource "local_file" "k8s_file" {
   content  = data.template_file.k8s.rendered
-  filename = "./inventory/k8s-host.ini"
+  filename = "./inventory/inventory.ini"
 }
 
 
@@ -350,6 +401,7 @@ data  "template_file" "ssh" {
     vars = {
         bastion_ip =  google_compute_address.bastion-ip-address.address
         bastion_ip =  google_compute_address.bastion-ip-address.address
+        kube_master_lb = google_compute_forwarding_rule.kube-master-lb-forwarding-rule.ip_address
     }
 }
 
@@ -357,6 +409,3 @@ resource "local_file" "ssh_file" {
   content  = data.template_file.ssh.rendered
   filename = "./scripts/ssh.sh"
 }
-
-
-

@@ -59,10 +59,19 @@ variable "bastion_machine_type" {
 }
 
 variable "kube_master_machine_count" {
-  default = 2
+  default = 3
 }
 
 variable "kube_master_machine_type" {
+  default = "n1-standard-4"
+}
+
+
+variable "kube_ingress_machine_count" {
+  default = 2
+}
+
+variable "kube_ingress_machine_type" {
   default = "n1-standard-4"
 }
 
