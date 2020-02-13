@@ -60,13 +60,15 @@ resource "google_compute_firewall" "private-firewall" {
 
   allow {
     protocol = "udp"
+    ports    = ["0-65535"]
   }
 
   allow {
     protocol = "tcp"
+     ports    = ["0-65535"]
   }
 
-  source_ranges = [var.gce_public_subnet_cidr, var.gce_private_subnet_cidr]
+  source_ranges = [var.gce_public_subnet_cidr, var.gce_private_subnet_cidr, "130.211.0.0/22",  "35.191.0.0/16"]
 }
 
 resource "google_compute_firewall" "public-firewall" {
@@ -83,6 +85,7 @@ resource "google_compute_firewall" "public-firewall" {
 
   allow {
     protocol = "tcp"
+    ports    = ["22","80", "443"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -180,15 +183,11 @@ resource "google_compute_instance_group" "kube-master-inst-group" {
   description = "kube master load balancer"
 
   instances = [
-  
-    for kube-master in google_compute_instance.kube-master:
-       kube-master.self_link
+    google_compute_instance.kube-master[0].self_link
+    #for kube-master in google_compute_instance.kube-master:
+    #   kube-master.self_link
   ]
 
-  named_port {
-    name = "http"
-    port = "8080"
-  }
 
   named_port {
     name = "https"
@@ -200,7 +199,7 @@ resource "google_compute_instance_group" "kube-master-inst-group" {
 
 resource "google_compute_health_check" "tcp-health-check" {
   name = "tcp-health-check"
-
+  
   tcp_health_check {
     port = "6443"
   }
