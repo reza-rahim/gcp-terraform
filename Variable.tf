@@ -47,7 +47,8 @@ variable "bastion-ip-address-count" {
 }
 
 variable "ubuntu" {
-  default = "ubuntu-os-cloud/ubuntu-1804-lts"
+  default = "k8-image-1-5"
+  #default = "ubuntu-os-cloud/ubuntu-1804-lts"
 }
 
 variable "boot_disk_size" {
