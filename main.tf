@@ -133,7 +133,7 @@ resource "google_compute_instance" "bastion" {
     scopes = ["compute-rw", "storage-ro", "service-management", "service-control", "logging-write", "monitoring"]
   }
 
-  metadata_startup_script = "apt-get install -y python; add-apt-repository ppa:ansible/ansible-2.5 -y; apt-get update; apt update; apt install -y ansible ; git clone https://github.com/reza-rahim/kubeadm-ansible.git"
+  #metadata_startup_script = "apt-get install -y python; add-apt-repository ppa:ansible/ansible-2.5 -y; apt-get update; apt update; apt install -y ansible ; git clone https://github.com/reza-rahim/kubeadm-ansible.git"
 
   metadata = {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
@@ -317,6 +317,7 @@ resource "google_compute_instance" "kube-worker" {
 }
 
 ###################### kube storage #################################
+
 resource "google_compute_disk" "storage-disk-b-" {
   count = var.kube_storage_machine_count
   name  = "storage-disk-b-${count.index}-data"
