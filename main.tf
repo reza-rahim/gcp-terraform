@@ -68,6 +68,10 @@ resource "google_compute_firewall" "private-firewall" {
      ports    = ["0-65535"]
   }
 
+  allow {
+    protocol = "ipip"
+  }
+
   source_ranges = [var.gce_public_subnet_cidr, var.gce_private_subnet_cidr, "130.211.0.0/22",  "35.191.0.0/16"]
 }
 
@@ -147,7 +151,7 @@ resource "google_compute_instance" "kube-master" {
   name         = "kube-master-${count.index}"
   machine_type = var.kube_master_machine_type
 
-  #can_ip_forward  = true
+  can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way", "kube-master"]
 
@@ -235,6 +239,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
   name         = "kube-ingress-${count.index}"
   machine_type = var.kube_ingress_machine_type
 
+  can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way", "kube-ingress"]
 
@@ -288,7 +293,7 @@ resource "google_compute_instance" "kube-worker" {
   name         = "kube-worker-${count.index}"
   machine_type = var.kube_worker_machine_type
 
-  #can_ip_forward  = true
+  can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way", "kube-worker"]
 
@@ -339,7 +344,7 @@ resource "google_compute_instance" "kube-storage" {
   name         = "kube-storage-${count.index}"
   machine_type = var.kube_storage_machine_type
 
-  #can_ip_forward  = true
+  can_ip_forward  = true
 
   tags = ["kubernetes-the-easy-way", "kube-storage"]
 
