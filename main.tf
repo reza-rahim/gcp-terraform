@@ -98,6 +98,8 @@ resource "google_compute_firewall" "public-firewall" {
 ########################### bastion ############################ 
 
 
+
+
 resource "google_compute_address" "bastion-ip-address" {
   #count = var.bastion-ip-address-count
   #name  = "bastion-ip-address-${count.index}"
@@ -137,7 +139,7 @@ resource "google_compute_instance" "bastion" {
     scopes = ["compute-rw", "storage-ro", "service-management", "service-control", "logging-write", "monitoring"]
   }
 
-  #metadata_startup_script = "apt-get install -y python; add-apt-repository ppa:ansible/ansible-2.5 -y; apt-get update; apt update; apt install -y ansible ; git clone https://github.com/reza-rahim/kubeadm-ansible.git"
+  metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update; yum install -y git;  yum install -y ansible; git clone https://github.com/reza-rahim/kubeadm-ansible.git"
 
   metadata = {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
@@ -176,7 +178,7 @@ resource "google_compute_instance" "kube-master" {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
 
-  metadata_startup_script = "apt-get install -y python"
+  metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update; "
 }
 
 
@@ -236,7 +238,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
 
   resource "google_compute_instance" "kube-ingress" {
   count        = var.kube_ingress_machine_count
-  name         = "kube-ingress-${count.index}"
+  name         = "skube-ingress-${count.index}"
   machine_type = var.kube_ingress_machine_type
 
   can_ip_forward  = true
@@ -263,7 +265,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
 
-  metadata_startup_script = "apt-get install -y python"
+  metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update; "
 }
 
 resource "google_compute_instance_group" "kube-ingress-inst-group" {
@@ -290,7 +292,7 @@ resource "google_compute_instance_group" "kube-ingress-inst-group" {
 
 resource "google_compute_instance" "kube-worker" {
   count        = var.kube_worker_machine_count
-  name         = "kube-worker-${count.index}"
+  name         = "skube-worker-${count.index}"
   machine_type = var.kube_worker_machine_type
 
   can_ip_forward  = true
@@ -318,7 +320,7 @@ resource "google_compute_instance" "kube-worker" {
     sshKeys = "${var.gce_ssh_user}:${file(var.gce_ssh_pub_key_file)}"
   }
 
-  metadata_startup_script = "apt-get install -y python"
+  metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update;"
 }
 
 ###################### kube storage #################################
@@ -341,7 +343,7 @@ resource "google_compute_disk" "storage-disk-c-" {
 
 resource "google_compute_instance" "kube-storage" {
   count        = var.kube_storage_machine_count
-  name         = "kube-storage-${count.index}"
+  name         = "skube-storage-${count.index}"
   machine_type = var.kube_storage_machine_type
 
   can_ip_forward  = true
@@ -379,7 +381,7 @@ resource "google_compute_instance" "kube-storage" {
     device_name = element(google_compute_disk.storage-disk-c-.*.name, count.index)
   }
 
-  metadata_startup_script = "apt-get install -y python"
+  metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update; "
 }
 
 ####################### create ansible invertory file  ####################### 

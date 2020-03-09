@@ -47,7 +47,7 @@ variable "bastion-ip-address-count" {
 }
 
 variable "ubuntu" {
-  default = "k8-image-1-5"
+  default = "centos-cloud/centos-7-v20200205"
   #default = "ubuntu-os-cloud/ubuntu-1804-lts"
 }
 
@@ -97,6 +97,7 @@ variable "kube_storage_disk_size" {
 }
 
 variable "kube_storage_disk_type" {
-  default = "pd-standard"
+  #default = "pd-standard"
+  default = "pd-ssd"
 }
 
