@@ -15,19 +15,19 @@ resource "google_compute_network" "vpc" {
 ################################   ##subnet and route ##########################
 
 resource "google_compute_subnetwork" "public-subnet" {
-  name          = "public-subnet"
+  name          = "${var.vpc}-public-subnet"
   network       = google_compute_network.vpc.name
   ip_cidr_range = var.gce_public_subnet_cidr
 }
 
 resource "google_compute_subnetwork" "private-subnet" {
-  name          = "private-subnet"
+  name          = "${var.vpc}-private-subnet"
   network       = google_compute_network.vpc.name
   ip_cidr_range = var.gce_private_subnet_cidr
 }
 
 resource "google_compute_router" "router" {
-  name    = "router"
+  name    = "${var.vpc}-router"
   region  = google_compute_subnetwork.private-subnet.region
   network = google_compute_network.vpc.self_link
   bgp {
@@ -39,7 +39,7 @@ resource "google_compute_router" "router" {
 ################################ nat  ############################
 
 resource "google_compute_router_nat" "simple-nat" {
-  name                               = "nat-1"
+  name                               = "${var.vpc}-nat"
   router                             = google_compute_router.router.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
@@ -51,7 +51,7 @@ resource "google_compute_router_nat" "simple-nat" {
 
 
 resource "google_compute_firewall" "private-firewall" {
-  name    = "private-firewall"
+  name    = "${var.vpc}-private-firewall"
   network = google_compute_network.vpc.name
 
   allow {
@@ -76,7 +76,7 @@ resource "google_compute_firewall" "private-firewall" {
 }
 
 resource "google_compute_firewall" "public-firewall" {
-  name    = "public-firewall"
+  name    = "${var.vpc}-public-firewall"
   network = google_compute_network.vpc.name
 
   allow {
@@ -103,13 +103,13 @@ resource "google_compute_firewall" "public-firewall" {
 resource "google_compute_address" "bastion-ip-address" {
   #count = var.bastion-ip-address-count
   #name  = "bastion-ip-address-${count.index}"
-  name  = "bastion-ip-address"
+  name  = "${var.vpc}-bastion-ip-address"
 }
 
 resource "google_compute_instance" "bastion" {
   #count        = var.bastion-ip-address-count
   #name         = "bastion-${count.index}"
-  name         = "bastion"
+  name         = "${var.vpc}-bastion"
   machine_type = var.bastion_machine_type
 
   #can_ip_forward  = true
@@ -118,7 +118,7 @@ resource "google_compute_instance" "bastion" {
 
   boot_disk {
     initialize_params {
-      image = var.ubuntu
+      image = var.os
       size  = var.boot_disk_size
     }
   }
@@ -150,7 +150,7 @@ resource "google_compute_instance" "bastion" {
 
 resource "google_compute_instance" "kube-master" {
   count        = var.kube_master_machine_count
-  name         = "kube-master-${count.index}"
+  name         = "${var.vpc}-master-${count.index}"
   machine_type = var.kube_master_machine_type
 
   can_ip_forward  = true
@@ -159,7 +159,7 @@ resource "google_compute_instance" "kube-master" {
 
   boot_disk {
     initialize_params {
-      image = var.ubuntu
+      image = var.os
       size  = var.boot_disk_size
     }
   }
@@ -185,7 +185,7 @@ resource "google_compute_instance" "kube-master" {
 ##### ----- #####
 resource "google_compute_instance_group" "kube-master-inst-group" {
   
-  name        = "kube-master-inst-group"
+  name        = "${var.vpc}-kube-master-inst-group"
   description = "kube master load balancer"
 
   instances = [
@@ -204,7 +204,7 @@ resource "google_compute_instance_group" "kube-master-inst-group" {
 }
 
 resource "google_compute_health_check" "tcp-health-check" {
-  name = "tcp-health-check"
+  name = "${var.vpc}-tcp-health-check"
   
   tcp_health_check {
     port = "6443"
@@ -214,7 +214,7 @@ resource "google_compute_health_check" "tcp-health-check" {
 ## load balancer kube-master-lb
 
 resource "google_compute_region_backend_service" "kube-master-lb" {
-  name          = "kube-master-lb"
+  name          = "${var.vpc}-master-lb"
   health_checks = [google_compute_health_check.tcp-health-check.self_link]
   region        = var.region
 
@@ -224,7 +224,7 @@ resource "google_compute_region_backend_service" "kube-master-lb" {
 }
 
 resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
-  name                  = "kube-master-lb-forwarding-rule"
+  name                  = "${var.vpc}-master-lb-forwarding-rule"
   load_balancing_scheme = "INTERNAL"
   ports                 = ["8080", "6443"]
   network               = google_compute_network.vpc.self_link
@@ -238,7 +238,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
 
   resource "google_compute_instance" "kube-ingress" {
   count        = var.kube_ingress_machine_count
-  name         = "skube-ingress-${count.index}"
+  name         = "${var.vpc}-ingress-${count.index}"
   machine_type = var.kube_ingress_machine_type
 
   can_ip_forward  = true
@@ -247,7 +247,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
 
   boot_disk {
     initialize_params {
-      image = var.ubuntu
+      image = var.os
       size  = var.boot_disk_size
     }
   }
@@ -270,7 +270,7 @@ resource "google_compute_forwarding_rule" "kube-master-lb-forwarding-rule" {
 
 resource "google_compute_instance_group" "kube-ingress-inst-group" {
   
-  name        = "kube-ingress-inst-group"
+  name        = "${var.vpc}-kube-ingress-inst-group"
   description = "kube ingress load balancer"
 
   instances = [
@@ -288,11 +288,12 @@ resource "google_compute_instance_group" "kube-ingress-inst-group" {
 }
 
 
+
 ###################### kube worker #################################
 
 resource "google_compute_instance" "kube-worker" {
   count        = var.kube_worker_machine_count
-  name         = "skube-worker-${count.index}"
+  name         = "${var.vpc}-worker-${count.index}"
   machine_type = var.kube_worker_machine_type
 
   can_ip_forward  = true
@@ -301,7 +302,7 @@ resource "google_compute_instance" "kube-worker" {
 
   boot_disk {
     initialize_params {
-      image = var.ubuntu
+      image = var.os
       size  = var.boot_disk_size
     }
   }
@@ -323,27 +324,37 @@ resource "google_compute_instance" "kube-worker" {
   metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update;"
 }
 
+
 ###################### kube storage #################################
 
 resource "google_compute_disk" "storage-disk-b-" {
   count = var.kube_storage_machine_count
-  name  = "storage-disk-b-${count.index}-data"
-  type  = var.kube_storage_disk_type
+  name  = "${var.vpc}-storage-disk-b-${count.index}-data"
+  type  = "pd-ssd"
   zone  = var.zone
-  size  = var.kube_storage_disk_size
+  size  = "500"
 }
 
 resource "google_compute_disk" "storage-disk-c-" {
   count = var.kube_storage_machine_count
-  name  = "storage-disk-c-${count.index}-data"
-  type  = var.kube_storage_disk_type
+  name  = "${var.vpc}-storage-disk-c-${count.index}-data"
+  type  = "pd-standard"
   zone  = var.zone
-  size  = var.kube_storage_disk_size
+  size  = "1000"
 }
+
+resource "google_compute_disk" "storage-disk-d-" {
+  count = var.kube_storage_machine_count
+  name  = "${var.vpc}-storage-disk-d-${count.index}-data"
+  type  = "pd-standard"
+  zone  = var.zone
+  size  = "1000"
+}
+
 
 resource "google_compute_instance" "kube-storage" {
   count        = var.kube_storage_machine_count
-  name         = "skube-storage-${count.index}"
+  name         = "${var.vpc}-storage-${count.index}"
   machine_type = var.kube_storage_machine_type
 
   can_ip_forward  = true
@@ -352,7 +363,7 @@ resource "google_compute_instance" "kube-storage" {
 
   boot_disk {
     initialize_params {
-      image = var.ubuntu
+      image = var.os
       size  = var.boot_disk_size
     }
   }
@@ -379,6 +390,11 @@ resource "google_compute_instance" "kube-storage" {
   attached_disk {
     source      = element(google_compute_disk.storage-disk-c-.*.self_link, count.index)
     device_name = element(google_compute_disk.storage-disk-c-.*.name, count.index)
+  }
+
+   attached_disk {
+    source      = element(google_compute_disk.storage-disk-d-.*.self_link, count.index)
+    device_name = element(google_compute_disk.storage-disk-d-.*.name, count.index)
   }
 
   metadata_startup_script = "sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart sshd; yum -y update; "
@@ -416,3 +432,5 @@ resource "local_file" "ssh_file" {
   content  = data.template_file.ssh.rendered
   filename = "./scripts/ssh.sh"
 }
+
+

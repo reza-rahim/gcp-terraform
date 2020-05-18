@@ -22,5 +22,5 @@ ssh root@${bastion_ip} mount -t tmpfs -o size=1M,mode=0755 tmpfs /var/kloverclou
 ssh root@${bastion_ip} echo "tmpfs  /var/klovercloud.com/cache size=100M,mode=0755 0 0" >> /etc/fstab;
 
 ## umount -l /var/klovercloud.com/cache 
-ssh root@${bastion_ip} -L 9090:localhost:9090  -L 3000:localhost:3000  -L 8080:localhost:8080 -L 8001:localhost:8001
+ssh root@${bastion_ip} -L 9090:localhost:9090  -L 3000:localhost:3000  -L 8080:localhost:8080 -L 8001:localhost:8001 -L 8443:localhost:8443
 

@@ -15,11 +15,12 @@ variable "zone" {
 }
 
 variable "os" {
-  default = "ubuntu"
+  default = "centos-cloud/centos-7-v20200205"
+  #default = "ubuntu-os-cloud/ubuntu-1804-lts"
 }
 
 variable "vpc" {
-  default = "kube"
+  default = "skube"
 }
 
 variable "gce_ssh_user" {
@@ -46,54 +47,58 @@ variable "bastion-ip-address-count" {
   default = 1
 }
 
-variable "ubuntu" {
-  default = "centos-cloud/centos-7-v20200205"
-  #default = "ubuntu-os-cloud/ubuntu-1804-lts"
-}
 
 variable "boot_disk_size" {
   default = 50
 }
 
-variable "bastion_machine_type" {
-  default = "n1-standard-1"
-}
 
+######  machine count ######
 variable "kube_master_machine_count" {
-  default = 3
+  default = 1
 }
-
-variable "kube_master_machine_type" {
-  default = "n1-standard-4"
-}
-
 
 variable "kube_ingress_machine_count" {
-  default = 2
-}
-
-variable "kube_ingress_machine_type" {
-  default = "n1-standard-4"
+  default = 1
 }
 
 variable "kube_worker_machine_count" {
   default = 3
 }
 
+variable "kube_storage_machine_count" {
+  default = 3
+}
+
+######  machine count ends ######
+
+variable "kube_master_machine_type" {
+  default = "n1-standard-4"
+}
+
+
+
+variable "bastion_machine_type" {
+  default = "n1-standard-1"
+}
+
+variable "kube_ingress_machine_type" {
+  default = "n1-standard-2"
+}
+
+
 variable "kube_worker_machine_type" {
   default = "n1-standard-4"
 }
 
-variable "kube_storage_machine_count" {
-  default = 3
-}
+
 
 variable "kube_storage_machine_type" {
   default = "n1-standard-4"
 }
 
 variable "kube_storage_disk_size" {
-  default = 100
+  default = 500
 }
 
 variable "kube_storage_disk_type" {
