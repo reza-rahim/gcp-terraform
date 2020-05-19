@@ -330,7 +330,7 @@ resource "google_compute_instance" "kube-worker" {
 resource "google_compute_disk" "storage-disk-b-" {
   count = var.kube_storage_machine_count
   name  = "${var.vpc}-storage-disk-b-${count.index}-data"
-  type  = "pd-ssd"
+  type  = "pd-standard"
   zone  = var.zone
   size  = "500"
 }

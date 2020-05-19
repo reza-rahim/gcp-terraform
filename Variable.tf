@@ -36,11 +36,11 @@ variable "gce_ssh_private_key_file" {
 }
 
 variable "gce_public_subnet_cidr" {
-  default = "10.10.0.0/24"
+  default = "10.1.0.0/24"
 }
 
 variable "gce_private_subnet_cidr" {
-  default = "10.20.0.0/16"
+  default = "10.2.0.0/16"
 }
 
 variable "bastion-ip-address-count" {
