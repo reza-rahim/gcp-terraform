@@ -326,7 +326,8 @@ resource "google_compute_instance" "kube-worker" {
 
 
 ###################### kube storage #################################
-
+### for ssd disk type  = "pd-ssd"
+  
 resource "google_compute_disk" "storage-disk-b-" {
   count = var.kube_storage_machine_count
   name  = "${var.vpc}-storage-disk-b-${count.index}-data"
